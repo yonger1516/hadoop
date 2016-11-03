@@ -51,6 +51,7 @@ import org.apache.hadoop.hdfs.protocolPB.DatanodeProtocolClientSideTranslatorPB;
 import org.apache.hadoop.hdfs.server.common.IncorrectVersionException;
 import org.apache.hadoop.hdfs.server.namenode.FSNamesystem;
 import org.apache.hadoop.hdfs.server.protocol.BlockReportContext;
+import org.apache.hadoop.hdfs.server.protocol.BlocksStorageMovementResult;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeCommand;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeStorage;
@@ -502,6 +503,10 @@ class BPServiceActor implements Runnable {
         slowPeersReportDue && dn.getPeerMetrics() != null ?
             SlowPeerReports.create(dn.getPeerMetrics().getOutliers()) :
             SlowPeerReports.EMPTY_REPORT;
+
+    BlocksStorageMovementResult[] blksMovementResults =
+        getBlocksMovementResults();
+
     HeartbeatResponse response = bpNamenode.sendHeartbeat(bpRegistration,
         reports,
         dn.getFSDataset().getCacheCapacity(),
@@ -511,13 +516,31 @@ class BPServiceActor implements Runnable {
         numFailedVolumes,
         volumeFailureSummary,
         requestBlockReportLease,
-        slowPeers);
+        slowPeers,
+        blksMovementResults);
 
     if (slowPeersReportDue) {
       // If the report was due and successfully sent, schedule the next one.
       scheduler.scheduleNextSlowPeerReport();
     }
+
+    // Remove the blocks movement results after successfully transferring
+    // to namenode.
+    dn.getStoragePolicySatisfyWorker().getBlocksMovementsCompletionHandler()
+        .remove(blksMovementResults);
+
     return response;
+  }
+
+  private BlocksStorageMovementResult[] getBlocksMovementResults() {
+    List<BlocksStorageMovementResult> trackIdVsMovementStatus = dn
+        .getStoragePolicySatisfyWorker().getBlocksMovementsCompletionHandler()
+        .getBlksMovementResults();
+    BlocksStorageMovementResult[] blksMovementResult =
+        new BlocksStorageMovementResult[trackIdVsMovementStatus.size()];
+    trackIdVsMovementStatus.toArray(blksMovementResult);
+
+    return blksMovementResult;
   }
 
   @VisibleForTesting

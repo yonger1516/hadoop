@@ -111,6 +111,8 @@ public interface DatanodeProtocol {
    * @param slowPeers Details of peer DataNodes that were detected as being
    *                  slow to respond to packet writes. Empty report if no
    *                  slow peers were detected by the DataNode.
+   * @param blksMovementResults array of movement status of a set of blocks
+   *                            associated to a trackId.
    * @throws IOException on error
    */
   @Idempotent
@@ -123,7 +125,8 @@ public interface DatanodeProtocol {
                                        int failedVolumes,
                                        VolumeFailureSummary volumeFailureSummary,
                                        boolean requestFullBlockReportLease,
-                                       @Nonnull SlowPeerReports slowPeers)
+                                       @Nonnull SlowPeerReports slowPeers,
+                                       BlocksStorageMovementResult[] blksMovementResults)
       throws IOException;
 
   /**
