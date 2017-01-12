@@ -1224,6 +1224,8 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
         FSDirEncryptionZoneOp.warmUpEdekCache(edekCacheLoader, dir,
             edekCacheLoaderDelay, edekCacheLoaderInterval);
       }
+
+      blockManager.activateSPS();
     } finally {
       startingActiveService = false;
       blockManager.checkSafeMode();
@@ -1253,6 +1255,10 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
     LOG.info("Stopping services started for active state");
     writeLock();
     try {
+      if (blockManager != null) {
+        blockManager.deactivateSPS();
+      }
+
       stopSecretManager();
       leaseManager.stopMonitor();
       if (nnrmthread != null) {
