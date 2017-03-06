@@ -337,6 +337,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * Test class for YARN API protocol records.
@@ -735,6 +736,8 @@ public class TestPBImplRecords extends BasePBImplRecordsTest {
 
   @Test
   public void testApplicationResourceUsageReportPBImpl() throws Exception {
+    excludedPropertiesMap.put(ApplicationResourceUsageReportPBImpl.class.getClass(),
+        Arrays.asList("PreemptedResourceSecondsMap", "ResourceSecondsMap"));
     validatePBImplRecord(ApplicationResourceUsageReportPBImpl.class,
         ApplicationResourceUsageReportProto.class);
   }

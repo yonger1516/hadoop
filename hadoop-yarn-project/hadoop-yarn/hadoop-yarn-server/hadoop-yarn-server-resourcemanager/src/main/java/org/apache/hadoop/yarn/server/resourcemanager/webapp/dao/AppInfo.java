@@ -96,6 +96,7 @@ public class AppInfo {
   protected long vcoreSeconds;
   protected float queueUsagePercentage;
   protected float clusterUsagePercentage;
+  protected Map<String, Long> resourceSecondsMap;
 
   // preemption info fields
   protected long preemptedResourceMB;
@@ -104,6 +105,7 @@ public class AppInfo {
   protected int numAMContainerPreempted;
   private long preemptedMemorySeconds;
   private long preemptedVcoreSeconds;
+  protected Map<String, Long> preemptedResourceSecondsMap;
 
   // list of resource requests
   @XmlElement(name = "resourceRequests")
@@ -220,8 +222,10 @@ public class AppInfo {
           appMetrics.getResourcePreempted().getVirtualCores();
       memorySeconds = appMetrics.getMemorySeconds();
       vcoreSeconds = appMetrics.getVcoreSeconds();
+      resourceSecondsMap = appMetrics.getResourceSecondsMap();
       preemptedMemorySeconds = appMetrics.getPreemptedMemorySeconds();
       preemptedVcoreSeconds = appMetrics.getPreemptedVcoreSeconds();
+      preemptedResourceSecondsMap = appMetrics.getPreemptedResourceSecondsMap();
       ApplicationSubmissionContext appSubmissionContext =
           app.getApplicationSubmissionContext();
       unmanagedApplication =
@@ -406,13 +410,17 @@ public class AppInfo {
   public int getNumAMContainersPreempted() {
     return numAMContainerPreempted;
   }
- 
+
   public long getMemorySeconds() {
     return memorySeconds;
   }
 
   public long getVcoreSeconds() {
     return vcoreSeconds;
+  }
+
+  public Map<String, Long> getResourceSecondsMap() {
+    return resourceSecondsMap;
   }
 
   public long getPreemptedMemorySeconds() {
@@ -422,6 +430,11 @@ public class AppInfo {
   public long getPreemptedVcoreSeconds() {
     return preemptedVcoreSeconds;
   }
+
+  public Map<String, Long> getPreemptedResourceSecondsMap() {
+    return preemptedResourceSecondsMap;
+  }
+
   public List<ResourceRequestInfo> getResourceRequests() {
     return this.resourceRequests;
   }
