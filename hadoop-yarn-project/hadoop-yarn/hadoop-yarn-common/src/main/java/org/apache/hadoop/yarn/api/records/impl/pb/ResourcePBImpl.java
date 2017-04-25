@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.yarn.api.records.impl.pb;
 
+import org.apache.commons.collections.map.UnmodifiableMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -46,6 +47,7 @@ public class ResourcePBImpl extends Resource {
   boolean viaProto = false;
 
   private Map<String, ResourceInformation> resources;
+  private Map<String, ResourceInformation> readOnlyResources;
 
   public ResourcePBImpl() {
     builder = ResourceProto.newBuilder();
@@ -54,6 +56,7 @@ public class ResourcePBImpl extends Resource {
   public ResourcePBImpl(ResourceProto proto) {
     this.proto = proto;
     viaProto = true;
+    this.readOnlyResources = null;
     this.resources = null;
     initResources();
   }
@@ -97,10 +100,9 @@ public class ResourcePBImpl extends Resource {
 
   @Override
   public void setMemorySize(long memory) {
-    setResourceInformation(ResourceInformation.MEMORY_MB.getName(),
-        ResourceInformation.newInstance(ResourceInformation.MEMORY_MB.getName(),
-            ResourceInformation.MEMORY_MB.getUnits(), memory));
-
+    maybeInitBuilder();
+    getResourceInformation(ResourceInformation.MEMORY_MB.getName())
+        .setValue(memory);
   }
 
   @Override
@@ -113,9 +115,9 @@ public class ResourcePBImpl extends Resource {
 
   @Override
   public void setVirtualCores(int vCores) {
-    setResourceInformation(ResourceInformation.VCORES.getName(),
-        ResourceInformation.newInstance(ResourceInformation.VCORES.getName(),
-            ResourceInformation.VCORES.getUnits(), (long) vCores));
+    maybeInitBuilder();
+    getResourceInformation(ResourceInformation.VCORES.getName())
+        .setValue(vCores);
   }
 
   private void initResources() {
@@ -129,7 +131,7 @@ public class ResourcePBImpl extends Resource {
           entry.hasType() ? ProtoUtils.convertFromProtoFormat(entry.getType()) :
               ResourceTypes.COUNTABLE;
       String units = entry.hasUnits() ? entry.getUnits() : "";
-      Long value = entry.hasValue() ? entry.getValue() : 0L;
+      long value = entry.hasValue() ? entry.getValue() : 0L;
       ResourceInformation ri = ResourceInformation
           .newInstance(entry.getKey(), units, value, type, 0L, Long.MAX_VALUE);
       if (resources.containsKey(ri.getName())) {
@@ -157,7 +159,7 @@ public class ResourcePBImpl extends Resource {
     }
     initResources();
     if (resources.containsKey(resource)) {
-      resources.put(resource, resourceInformation);
+      ResourceInformation.copy(resourceInformation, resources.get(resource));
     }
   }
 
@@ -179,7 +181,7 @@ public class ResourcePBImpl extends Resource {
   @Override
   public Map<String, ResourceInformation> getResources() {
     initResources();
-    return Collections.unmodifiableMap(this.resources);
+    return readOnlyResources;
   }
 
   @Override
@@ -212,6 +214,7 @@ public class ResourcePBImpl extends Resource {
         resources.put(entry.getKey(),
             ResourceInformation.newInstance(entry.getValue()));
       }
+      readOnlyResources = Collections.unmodifiableMap(resources);
     }
   }
 
