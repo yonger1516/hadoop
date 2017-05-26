@@ -102,6 +102,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.security
     .AMRMTokenSecretManager;
 import org.apache.hadoop.yarn.server.resourcemanager.security.authorize.RMPolicyProvider;
 import org.apache.hadoop.yarn.server.security.MasterKeyData;
+import org.apache.hadoop.yarn.server.utils.AMRMClientUtils;
 import org.apache.hadoop.yarn.server.utils.BuilderUtils;
 import org.apache.hadoop.yarn.server.utils.YarnServerSecurityUtils;
 import org.apache.hadoop.yarn.util.resource.Resources;
@@ -223,9 +224,7 @@ public class ApplicationMasterService extends AbstractService implements
     synchronized (lock) {
       AllocateResponse lastResponse = lock.getAllocateResponse();
       if (hasApplicationMasterRegistered(applicationAttemptId)) {
-        String message =
-            "Application Master is already registered : "
-                + appID;
+        String message = AMRMClientUtils.APP_ALREADY_REGISTERED_MESSAGE + appID;
         LOG.warn(message);
         RMAuditLogger.logFailure(
           this.rmContext.getRMApps()
