@@ -88,11 +88,11 @@ public abstract class BaseAMRMProxyTest {
   private static final Log LOG = LogFactory
       .getLog(BaseAMRMProxyTest.class);
   /**
-   * The AMRMProxyService instance that will be used by all the test cases
+   * The AMRMProxyService instance that will be used by all the test cases.
    */
   private MockAMRMProxyService amrmProxyService;
   /**
-   * Thread pool used for asynchronous operations
+   * Thread pool used for asynchronous operations.
    */
   private static ExecutorService threadpool = Executors
       .newCachedThreadPool();
@@ -104,22 +104,26 @@ public abstract class BaseAMRMProxyTest {
     return this.amrmProxyService;
   }
 
-  @Before
-  public void setUp() {
-    this.conf = new YarnConfiguration();
-    this.conf.setBoolean(YarnConfiguration.AMRM_PROXY_ENABLED, true);
+  protected YarnConfiguration createConfiguration() {
+    YarnConfiguration config = new YarnConfiguration();
+    config.setBoolean(YarnConfiguration.AMRM_PROXY_ENABLED, true);
     String mockPassThroughInterceptorClass =
         PassThroughRequestInterceptor.class.getName();
 
     // Create a request intercepter pipeline for testing. The last one in the
     // chain will call the mock resource manager. The others in the chain will
     // simply forward it to the next one in the chain
-    this.conf.set(YarnConfiguration.AMRM_PROXY_INTERCEPTOR_CLASS_PIPELINE,
-        mockPassThroughInterceptorClass + ","
-            + mockPassThroughInterceptorClass + ","
-            + mockPassThroughInterceptorClass + ","
+    config.set(YarnConfiguration.AMRM_PROXY_INTERCEPTOR_CLASS_PIPELINE,
+        mockPassThroughInterceptorClass + "," + mockPassThroughInterceptorClass
+            + "," + mockPassThroughInterceptorClass + ","
             + MockRequestInterceptor.class.getName());
 
+    return config;
+  }
+
+  @Before
+  public void setUp() {
+    this.conf = this.createConfiguration();
     this.dispatcher = new AsyncDispatcher();
     this.dispatcher.init(this.conf);
     this.dispatcher.start();
