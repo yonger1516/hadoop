@@ -35,9 +35,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.kms.model.LimitExceededException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -89,6 +91,7 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.StorageStatistics;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.fs.s3native.S3xLoginHelper;
+import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -152,6 +155,8 @@ public class S3AFileSystem extends FileSystem {
   private String blockOutputBuffer;
   private S3ADataBlocks.BlockFactory blockFactory;
   private int blockOutputActiveBlocks;
+  private static AtomicInteger metricsSourceNameCounter = new AtomicInteger();
+  private String metricsSourceName;
 
   /** Called after a new FileSystem instance is constructed.
    * @param name a uri whose authority section names the host, port, etc.
@@ -171,7 +176,16 @@ public class S3AFileSystem extends FileSystem {
     super.initialize(name, conf);
     setConf(conf);
     try {
+      // Init Metrics system
+      DefaultMetricsSystem.initialize("s3a-file-system");
+
+      // Register S3AFileSystem metrics source implementation.
+      // If register current implementation more than once within a progress,
+      // register with different source name
+      metricsSourceName = newMetricsSourceName() + "-" + uri.getHost();
       instrumentation = new S3AInstrumentation(name);
+      DefaultMetricsSystem.instance()
+          .register(metricsSourceName, "", instrumentation);
 
       // Username is the current user at the time the FS was instantiated.
       username = UserGroupInformation.getCurrentUser().getShortUserName();
@@ -262,6 +276,18 @@ public class S3AFileSystem extends FileSystem {
       throw translateException("initializing ", new Path(name), e);
     }
 
+  }
+
+  @VisibleForTesting
+  public static String newMetricsSourceName()
+      throws LimitExceededException {
+    int number = metricsSourceNameCounter.incrementAndGet();
+    final String baseName = "S3AFileSystemMetrics";
+    if (number <= 9999) {
+      return baseName + "-" + String.format("%04d", number);
+    } else {
+      throw new LimitExceededException("Too many metrics source to register.");
+    }
   }
 
   /**
